@@ -122,7 +122,7 @@ Build and run:
 
 ```bash
 docker build -t mitosis-dashboard .
-docker run -p 4321:4321 mitosis-dashboard
+docker run -d -p 4321:4321 mitosis-dashboard
 ```
 
 ### Environment Configuration

@@ -58,6 +58,31 @@ export enum TaskResultMessage {
   RESOURCE_FORBIDDEN = "ResourceForbidden",
   WATCH_TIMEOUT = "WatchTimeout",
   USER_CANCELLATION = "UserCancellation",
+  SUBMIT_NEW_TASK_FAILED = "SubmitNewTaskFailed",
+}
+
+// Missing enums from SDK
+export enum UserState {
+  ACTIVE = "Active",
+  LOCKED = "Locked",
+  DELETED = "Deleted",
+}
+
+export enum GroupState {
+  ACTIVE = "Active",
+  LOCKED = "Locked",
+  DELETED = "Deleted",
+}
+
+export enum WorkerState {
+  NORMAL = "Normal",
+  GRACEFUL_SHUTDOWN = "GracefulShutdown",
+}
+
+export enum UserGroupRole {
+  READ = "Read",
+  WRITE = "Write",
+  ADMIN = "Admin",
 }
 
 // Base interfaces
@@ -134,16 +159,13 @@ export interface TaskQueryInfo {
   task_id: number;
   tags: string[];
   labels: string[];
-  created_time: string;
-  started_time?: string;
-  finished_time?: string;
+  created_at: string; // Fixed: was created_time
+  updated_at: string; // Added missing field
   state: TaskState;
-  exit_status?: number;
   timeout: number;
   priority: number;
   spec: any; // Raw spec object
   result?: any | null;
-  assigned_worker_uuid?: string;
 }
 
 export interface ParsedTaskQueryInfo {
@@ -213,15 +235,144 @@ export interface UploadAttachmentResp {
 }
 
 export interface AttachmentMetadata {
+  size: number; // Fixed: was content_length
+  created_at: string; // Fixed: was created_time
+  updated_at?: string; // Fixed: was updated_time
+}
+
+export interface AttachmentsQueryReq {
+  group_name: string;
+  keys?: string[];
+  limit?: number;
+  offset?: number;
+  count?: boolean;
+}
+
+export interface AttachmentQueryInfo {
   key: string;
-  content_type?: string;
-  content_length: number;
-  created_time: string;
-  updated_time?: string;
+  size: number;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface AttachmentsQueryResp {
-  attachments: AttachmentMetadata[];
+  attachments: AttachmentQueryInfo[];
   count: number;
 }
 
+// Worker Management Schemas
+export interface WorkerQueryInfo {
+  worker_id: string;
+  creator_username: string;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+  state: WorkerState;
+  last_heartbeat: string;
+  assigned_task_uuid?: string;
+}
+
+export interface WorkerQueryResp {
+  info: WorkerQueryInfo;
+  groups: Record<string, GroupWorkerRole>;
+}
+
+export interface WorkersQueryReq {
+  group_name?: string;
+  role?: GroupWorkerRole[];
+  tags?: string[];
+  creator_username?: string;
+  count?: boolean;
+}
+
+export interface WorkersQueryResp {
+  workers: WorkerQueryInfo[];
+  count: number;
+}
+
+// Group Management Schemas
+export interface GroupQueryInfo {
+  group_name: string;
+  creator_username: string;
+  created_at: string;
+  updated_at: string;
+  state: GroupState;
+  task_count: number;
+  storage_quota: number;
+  storage_used: number;
+  worker_count: number;
+  users_in_group?: Record<string, UserGroupRole>;
+}
+
+export interface GroupsQueryResp {
+  groups: Record<string, UserGroupRole>;
+}
+
+// Admin and Management Request Schemas
+export interface CreateUserReq {
+  username: string;
+  md5_password: number[];
+  admin?: boolean;
+}
+
+export interface UserChangePasswordReq {
+  old_password: number[];
+  new_password: number[];
+}
+
+export interface UserChangePasswordResp {
+  token: string;
+}
+
+export interface AdminChangePasswordReq {
+  new_password: number[];
+}
+
+export interface CreateGroupReq {
+  group_name: string;
+}
+
+export interface ChangeGroupStorageQuotaReq {
+  storage_quota: string;
+}
+
+export interface GroupStorageQuotaResp {
+  storage_quota: number;
+}
+
+export interface UpdateTaskLabelsReq {
+  labels: string[];
+}
+
+export interface ChangeTaskReq {
+  priority?: number;
+  timeout?: string;
+}
+
+export interface ReplaceWorkerTagsReq {
+  tags: string[];
+}
+
+export interface ReplaceWorkerLabelsReq {
+  labels: string[];
+}
+
+export interface UpdateGroupWorkerRoleReq {
+  relations: Record<string, GroupWorkerRole>;
+}
+
+export interface RemoveGroupWorkerRoleReq {
+  groups: string[];
+}
+
+export interface UpdateUserGroupRoleReq {
+  relations: Record<string, UserGroupRole>;
+}
+
+export interface RemoveUserGroupRoleReq {
+  users: string[];
+}
+
+export interface ShutdownReq {
+  timeout?: string;
+}

@@ -2,37 +2,68 @@ import type { APIRoute } from "astro";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const {
+      token,
+      coordinator_addr,
+      username,
+      md5_password,
+      admin = false,
+    } = await request.json();
+
+    if (!token || !coordinator_addr) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        JSON.stringify({ error: "Token and coordinator_addr are required" }),
         {
-          status: 401,
+          status: 400,
           headers: { "Content-Type": "application/json" },
         },
       );
     }
 
-    const token = authHeader.substring(7);
-    const requestBody = await request.json();
+    if (!username || !md5_password) {
+      return new Response(
+        JSON.stringify({ error: "Username and md5_password are required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
 
-    console.log("Admin creating user:", {
-      username: requestBody.username,
-      admin: requestBody.admin,
+    // Build the CreateUserReq payload
+    const createUserReq = {
+      username,
+      md5_password,
+      admin,
+    };
+
+    const response = await fetch(`${coordinator_addr}/admin/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(createUserReq),
     });
 
-    // For demo purposes, just return success
-    // In production, this would forward to the actual coordinator
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `User "${requestBody.username}" created successfully`,
-      }),
-      {
-        status: 200,
+    if (response.ok) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `User "${username}" created successfully`,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } else {
+      const error = await response.text();
+      return new Response(JSON.stringify({ error }), {
+        status: response.status,
         headers: { "Content-Type": "application/json" },
-      },
-    );
+      });
+    }
   } catch (error) {
     console.error("Admin user creation error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
@@ -41,4 +72,3 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 };
-

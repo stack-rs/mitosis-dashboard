@@ -27,15 +27,10 @@ export const authUtils = {
 
       const session: UserSession = JSON.parse(stored);
 
-      // Check if session is valid and not expired (24 hours for retained sessions)
-      const now = Date.now();
-      const sessionAge = now - session.loginTime;
-      const maxAge = session.retain ? 24 * 60 * 60 * 1000 : 2 * 60 * 60 * 1000; // 24h vs 2h
-
-      if (sessionAge > maxAge) {
-        this.clearSession();
-        return null;
-      }
+      // if (!session.retain) {
+      //   this.clearSession();
+      //   return null;
+      // }
 
       return session;
     } catch (error) {
@@ -82,4 +77,3 @@ export const authUtils = {
     };
   },
 };
-

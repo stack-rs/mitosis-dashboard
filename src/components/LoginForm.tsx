@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { handleApiError, handleNetworkError } from "../utils/errorUtils";
 
 interface LoginFormProps {
   onLogin: (
@@ -12,9 +13,7 @@ interface LoginFormProps {
 export default function LoginForm({ onLogin }: LoginFormProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [coordinatorAddr, setCoordinatorAddr] = useState(
-    "http://localhost:5000",
-  );
+  const [coordinatorAddr, setCoordinatorAddr] = useState("");
   const [retain, setRetain] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -23,8 +22,6 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     e.preventDefault();
     setLoading(true);
     setError("");
-
-    console.log("Login attempt:", { username, coordinatorAddr, retain });
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -40,25 +37,17 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         }),
       });
 
-      // console.log("API Response status:", response.status);
-
       const data = await response.json();
-      // console.log("API Response data:", data);
 
       if (response.ok && data.token) {
-        // console.log("Login successful, calling onLogin");
         onLogin(data.token, username, coordinatorAddr, retain);
       } else {
-        const errorMsg =
-          data.error || `Login failed with status ${response.status}`;
-        console.error("Login failed:", errorMsg);
-        setError(errorMsg);
+        const errorMessage = await handleApiError(response);
+        setError(errorMessage);
       }
     } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Network error occurred";
-      console.error("Login error:", err);
-      setError(errorMsg);
+      const errorMessage = handleNetworkError(err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

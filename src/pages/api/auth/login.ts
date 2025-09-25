@@ -10,19 +10,8 @@ export const POST: APIRoute = async ({ request }) => {
       coordinator_addr,
     } = await request.json();
 
-    console.log("API Login attempt:", {
-      username,
-      coordinator_addr,
-      retain,
-      passwordLength: password?.length,
-    });
-
-    // Hash password using MD5 and convert to array of integers (matching Python SDK)
     const md5Hash = crypto.createHash("md5").update(password).digest();
     const md5_password = Array.from(md5Hash);
-
-    // console.log("MD5 hash generated, length:", md5_password.length);
-    // console.log("Making request to:", `${coordinator_addr}/login`);
 
     const requestBody = {
       username,
@@ -38,11 +27,8 @@ export const POST: APIRoute = async ({ request }) => {
       body: JSON.stringify(requestBody),
     });
 
-    // console.log("Backend response status:", response.status);
-
     if (response.ok) {
       const data = await response.json();
-      // console.log("Login successful, token received");
       return new Response(JSON.stringify(data), {
         status: 200,
         headers: {

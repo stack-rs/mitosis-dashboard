@@ -2,34 +2,55 @@ import type { APIRoute } from "astro";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const { token, coordinator_addr, secret, timeout } = await request.json();
+
+    if (!token || !coordinator_addr || !secret) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        JSON.stringify({
+          error: "Token, coordinator_addr, and secret are required",
+        }),
         {
-          status: 401,
+          status: 400,
           headers: { "Content-Type": "application/json" },
         },
       );
     }
 
-    const token = authHeader.substring(7);
-    const requestBody = await request.json();
+    // Build the ShutdownReq payload - secret is required!
+    const shutdownReq: any = {
+      secret: secret,
+    };
+    if (timeout) {
+      shutdownReq.timeout = timeout;
+    }
 
-    console.log("Admin shutdown request with secret");
-
-    // For demo purposes, just return success
-    // In production, this would forward to the actual coordinator with proper secret validation
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Shutdown command sent to coordinator",
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
+    const response = await fetch(`${coordinator_addr}/admin/shutdown`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-    );
+      body: JSON.stringify(shutdownReq),
+    });
+
+    if (response.ok) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Shutdown command sent to coordinator",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } else {
+      const error = await response.text();
+      return new Response(JSON.stringify({ error }), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   } catch (error) {
     console.error("Admin shutdown error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
@@ -38,4 +59,3 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 };
-

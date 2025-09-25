@@ -1,32 +1,40 @@
 import React, { useState, useEffect } from "react";
 import LoginForm from "./LoginForm";
-import TaskSubmissionForm from "./TaskSubmissionForm";
-import TaskQueryForm from "./TaskQueryForm";
-import TaskQueryByUuid from "./TaskQueryByUuid";
-import TaskLabelsManager from "./TaskLabelsManager";
-import TaskList from "./TaskList";
+import SubmitTask from "./tasks/SubmitTask";
+import QueryTask from "./tasks/QueryTask";
+import ListTasks from "./tasks/ListTasks";
+import ManageTask from "./tasks/ManageTask";
+import CancelTask from "./tasks/CancelTask";
 import TaskDetail from "./TaskDetail";
-import FileUploader from "./FileUploader";
-import AttachmentManager from "./AttachmentManager";
-import AttachmentQueryManager from "./AttachmentQueryManager";
-import AttachmentDownload from "./AttachmentDownload";
-import AttachmentDelete from "./AttachmentDelete";
-import AttachmentList from "./AttachmentList";
-import ArtifactManager from "./ArtifactManager";
-import ArtifactUpload from "./ArtifactUpload";
-import ArtifactDelete from "./ArtifactDelete";
-import RedisConnection from "./RedisConnection";
-import UserManagement from "./UserManagement";
-import WorkerManagement from "./WorkerManagement";
-import GroupManagement from "./GroupManagement";
-import AdminManagement from "./AdminManagement";
+import QueryAttachment from "./attachments/QueryAttachment";
+import ListAttachments from "./attachments/ListAttachments";
+import DownloadAttachment from "./attachments/DownloadAttachment";
+import UploadAttachment from "./attachments/UploadAttachment";
+import DeleteAttachment from "./attachments/DeleteAttachment";
+import UploadArtifact from "./artifacts/UploadArtifact";
+import DownloadArtifact from "./artifacts/DownloadArtifact";
+import DeleteArtifact from "./artifacts/DeleteArtifact";
+import QueryWorker from "./workers/QueryWorker";
+import ListWorkers from "./workers/ListWorkers";
+import ManageWorker from "./workers/ManageWorker";
+import CancelWorker from "./workers/CancelWorker";
+import CreateGroup from "./groups/CreateGroup";
+import GetGroup from "./groups/GetGroup";
+import ManageGroup from "./groups/ManageGroup";
+import ChangePassword from "./users/ChangePassword";
+import MyGroups from "./users/MyGroups";
+import CurrentSession from "./users/CurrentSession";
+import ManageUsers from "./admin/ManageUsers";
+import ManageGroups from "./admin/ManageGroups";
+import ManageWorkers from "./admin/ManageWorkers";
+import ManageTasks from "./admin/ManageTasks";
+import SystemControl from "./admin/SystemControl";
+import Footer from "./Footer";
 import { NestedMenu, menuConfig } from "./NestedMenu";
+import UserDropdown from "./UserDropdown";
 import { authUtils, type UserSession } from "../utils/auth";
-import type {
-  TaskQueryInfo,
-  TasksQueryResp,
-  SubmitTaskResp,
-} from "../types/schemas";
+import { setLogoutHandler } from "../utils/errorUtils";
+import type { TaskQueryInfo } from "../types/schemas";
 
 interface User {
   username: string;
@@ -40,13 +48,21 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
   const [isLoading, setIsLoading] = useState(true);
-  const [tasks, setTasks] = useState<TaskQueryInfo[]>([]);
-  const [totalTaskCount, setTotalTaskCount] = useState(0);
+  const [totalTaskCount] = useState(0);
   const [selectedTask, setSelectedTask] = useState<TaskQueryInfo | null>(null);
   const [uploadContext, setUploadContext] = useState<{
     uuid?: string;
     groupName?: string;
   }>({});
+
+  // Define logout handler
+  const handleLogout = () => {
+    authUtils.clearSession();
+    setUser(null);
+    setActiveTab("overview");
+    setSelectedTask(null);
+    setUploadContext({});
+  };
 
   // Try to restore session on component mount
   useEffect(() => {
@@ -59,6 +75,9 @@ export default function Dashboard() {
       });
     }
     setIsLoading(false);
+
+    // Set up global logout handler for 401 errors
+    setLogoutHandler(handleLogout);
   }, []);
 
   const handleLogin = (
@@ -80,72 +99,48 @@ export default function Dashboard() {
     setActiveTab("overview");
   };
 
-  const handleLogout = () => {
-    authUtils.clearSession();
-    setUser(null);
-    setActiveTab("overview");
-    setTasks([]);
-    setSelectedTask(null);
-    setUploadContext({});
-  };
 
-  const handleTaskSubmitted = (response: SubmitTaskResp) => {
-    // Update upload context with the new task UUID
-    setUploadContext({ uuid: response.uuid, groupName: user?.username });
 
-    // Show success message with option to view artifacts
-    alert(
-      `Task submitted successfully!\nTask ID: ${response.task_id}\nUUID: ${response.uuid}\n\nYou can now upload artifacts for this task.`,
-    );
-  };
-
-  const handleTasksFound = (response: TasksQueryResp) => {
-    setTasks(response.tasks);
-    setTotalTaskCount(response.count);
-  };
-
-  const handleTaskClick = (task: TaskQueryInfo) => {
-    setSelectedTask(task);
-  };
 
   const handleTaskDetailClose = () => {
     setSelectedTask(null);
   };
 
-  const handleRefreshTasks = () => {
-    // This could trigger a re-query, but for now just clear the list
-    setTasks([]);
-    setTotalTaskCount(0);
-  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-gray-900 mb-2">
-            Mitosis Dashboard
+      <div className="min-h-screen bg-gray-100 flex flex-col">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900 mb-2">
+              Mitosis Dashboard
+            </div>
+            <div className="text-gray-600">Loading...</div>
           </div>
-          <div className="text-gray-600">Loading...</div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-100 py-8">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Mitosis Dashboard
-            </h1>
-            <p className="text-lg text-gray-600">
-              Web Interface for Mitosis, A Unified Transport Evaluation
-              Framework
-            </p>
+      <div className="min-h-screen bg-gray-100 flex flex-col">
+        <div className="flex-1 py-8">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                Mitosis Dashboard
+              </h1>
+              <p className="text-lg text-gray-600">
+                Web Interface for Mitosis, A Unified Transport Evaluation
+                Framework
+              </p>
+            </div>
+            <LoginForm onLogin={handleLogin} />
           </div>
-          <LoginForm onLogin={handleLogin} />
         </div>
+        <Footer />
       </div>
     );
   }
@@ -220,46 +215,42 @@ export default function Dashboard() {
       // Tasks
       case "tasks.submit":
         return (
-          <TaskSubmissionForm
+          <SubmitTask
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
-            onTaskSubmitted={handleTaskSubmitted}
           />
         );
 
       case "tasks.query":
         return (
-          <TaskQueryByUuid
+          <QueryTask
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+          />
+        );
+
+      case "tasks.list":
+        return (
+          <ListTasks
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
           />
         );
 
-      case "tasks.list":
+      case "tasks.manage":
         return (
-          <div className="space-y-8">
-            <TaskQueryForm
-              token={user.token}
-              coordinatorAddr={user.coordinatorAddr}
-              username={user.username}
-              onTasksFound={handleTasksFound}
-            />
-            {tasks.length > 0 && (
-              <TaskList
-                tasks={tasks}
-                totalCount={totalTaskCount}
-                onTaskClick={handleTaskClick}
-                onRefresh={handleRefreshTasks}
-              />
-            )}
-          </div>
+          <ManageTask
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+            username={user.username}
+          />
         );
 
-      case "tasks.labels":
+      case "tasks.cancel":
         return (
-          <TaskLabelsManager
+          <CancelTask
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
@@ -269,69 +260,41 @@ export default function Dashboard() {
       // Artifacts
       case "artifacts.upload":
         return (
-          <ArtifactUpload
+          <UploadArtifact
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
-            username={user.username}
           />
         );
 
       case "artifacts.download":
-      case "artifacts.manage":
         return (
-          <ArtifactManager
+          <DownloadArtifact
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
-            username={user.username}
-            activeView={activeTab}
           />
         );
 
       case "artifacts.delete":
         return (
-          <ArtifactDelete
+          <DeleteArtifact
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
-            username={user.username}
           />
         );
 
       // Attachments
       case "attachments.upload":
         return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Upload Attachment</h2>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Group Name (required for attachment upload)
-                </label>
-                <input
-                  type="text"
-                  value={uploadContext.groupName || user.username}
-                  onChange={(e) =>
-                    setUploadContext({
-                      ...uploadContext,
-                      groupName: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter group name"
-                />
-              </div>
-            </div>
-            <FileUploader
-              token={user.token}
-              coordinatorAddr={user.coordinatorAddr}
-              type="attachment"
-              groupName={uploadContext.groupName || user.username}
-            />
-          </div>
+          <UploadAttachment
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+            username={user.username}
+          />
         );
 
       case "attachments.download":
         return (
-          <AttachmentDownload
+          <DownloadAttachment
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
@@ -340,7 +303,7 @@ export default function Dashboard() {
 
       case "attachments.query":
         return (
-          <AttachmentQueryManager
+          <QueryAttachment
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
@@ -349,7 +312,7 @@ export default function Dashboard() {
 
       case "attachments.delete":
         return (
-          <AttachmentDelete
+          <DeleteAttachment
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
@@ -358,81 +321,136 @@ export default function Dashboard() {
 
       case "attachments.list":
         return (
-          <AttachmentList
+          <ListAttachments
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
-          />
-        );
-
-      case "attachments.manage":
-        return (
-          <AttachmentManager
-            token={user.token}
-            coordinatorAddr={user.coordinatorAddr}
-            groupName={uploadContext.groupName || user.username}
           />
         );
 
       // Users
-      case "users.profile":
       case "users.password":
-      case "users.groups":
         return (
-          <UserManagement
+          <ChangePassword
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
-            activeView={activeTab}
+          />
+        );
+
+      case "users.groups":
+        return (
+          <MyGroups
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+            username={user.username}
+          />
+        );
+
+      case "users.session":
+        return (
+          <CurrentSession
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+            username={user.username}
           />
         );
 
       // Workers
       case "workers.query":
-      case "workers.manage":
-      case "workers.tags":
         return (
-          <WorkerManagement
+          <QueryWorker
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
-            username={user.username}
-            activeView={activeTab}
+          />
+        );
+
+      case "workers.list":
+        return (
+          <ListWorkers
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+          />
+        );
+
+      case "workers.manage":
+        return (
+          <ManageWorker
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+          />
+        );
+
+      case "workers.cancel":
+        return (
+          <CancelWorker
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
           />
         );
 
       // Groups
       case "groups.create":
-      case "groups.manage":
-      case "groups.roles":
-      case "groups.storage":
         return (
-          <GroupManagement
+          <CreateGroup
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
-            username={user.username}
-            activeView={activeTab}
+          />
+        );
+
+      case "groups.get":
+        return (
+          <GetGroup token={user.token} coordinatorAddr={user.coordinatorAddr} />
+        );
+
+      case "groups.manage":
+        return (
+          <ManageGroup
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
           />
         );
 
       // Admin
       case "admin.users":
-      case "admin.workers":
-      case "admin.groups":
-      case "admin.storage":
-      case "admin.system":
         return (
-          <AdminManagement
+          <ManageUsers
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
-            activeView={activeTab}
           />
         );
 
-      // Redis
-      case "redis":
+      case "admin.groups":
         return (
-          <RedisConnection
+          <ManageGroups
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+            username={user.username}
+          />
+        );
+
+      case "admin.workers":
+        return (
+          <ManageWorkers
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+            username={user.username}
+          />
+        );
+
+      case "admin.tasks":
+        return (
+          <ManageTasks
+            token={user.token}
+            coordinatorAddr={user.coordinatorAddr}
+            username={user.username}
+          />
+        );
+
+      case "admin.system":
+        return (
+          <SystemControl
             token={user.token}
             coordinatorAddr={user.coordinatorAddr}
             username={user.username}
@@ -455,59 +473,52 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar Navigation */}
-      <div className="w-64 bg-white shadow-lg">
-        <div className="p-4 border-b">
+      {/* Left Side: App Name + Navigation */}
+      <div className="w-64 bg-white flex flex-col">
+        {/* Area 1: App Name/Logo (Left Top) */}
+        <div className="p-4 bg-white h-20 flex flex-col justify-center border-r border-gray-200">
           <h1 className="text-lg font-bold text-gray-900">Mitosis Dashboard</h1>
           <div className="text-xs text-gray-500">Transport Evaluation</div>
         </div>
 
-        <NestedMenu
-          items={menuConfig}
-          activeItem={activeTab}
-          onItemSelect={setActiveTab}
-          className="h-full"
-        />
+        {/* Area 3: Sidebar Navigation (Left Bottom) */}
+        <div className="flex-1 bg-white overflow-y-auto">
+          <NestedMenu
+            items={menuConfig}
+            activeItem={activeTab}
+            onItemSelect={setActiveTab}
+            className="h-full"
+          />
+        </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Right Side: Top Navigation + Content + Footer */}
       <div className="flex-1 flex flex-col">
-        {/* Top Navigation Bar */}
-        <nav className="bg-white shadow-md border-b">
-          <div className="px-6 py-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {menuConfig.find(
-                    (item) =>
-                      item.id === activeTab ||
-                      item.submenu?.find((sub) => sub.id === activeTab),
-                  )?.label || "Dashboard"}
-                </h2>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                  <span className="font-medium">{user.username}</span>
-                  <span className="mx-2">•</span>
-                  <span className="font-mono text-xs">
-                    {user.coordinatorAddr}
-                  </span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
-                  title="Logout"
-                >
-                  🚪 Logout
-                </button>
-              </div>
-            </div>
+        {/* Area 2: Top Navigation (Right Top) */}
+        <nav className="bg-white h-20 px-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-semibold text-gray-900">
+              {menuConfig.find(
+                (item) =>
+                  item.id === activeTab ||
+                  item.submenu?.find((sub) => sub.id === activeTab),
+              )?.label || "Dashboard"}
+            </h2>
           </div>
+
+          <UserDropdown
+            username={user.username}
+            coordinatorAddr={user.coordinatorAddr}
+            onLogout={handleLogout}
+            onMenuSelect={setActiveTab}
+          />
         </nav>
 
-        {/* Main Content */}
-        <div className="flex-1 p-6">{renderMainContent()}</div>
+        {/* Area 4: Main Content (Right Middle) */}
+        <div className="flex-1 overflow-y-auto p-6">{renderMainContent()}</div>
+
+        {/* Area 5: Footer (Right Bottom) */}
+        <Footer />
       </div>
 
       {/* Task Detail Modal */}

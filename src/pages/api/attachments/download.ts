@@ -1,12 +1,8 @@
 import type { APIRoute } from "astro";
 
-export const GET: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request }) => {
   try {
-    const url = new URL(request.url);
-    const token = url.searchParams.get("token");
-    const coordinator_addr = url.searchParams.get("coordinator_addr");
-    const group_name = url.searchParams.get("group_name");
-    const key = url.searchParams.get("key");
+    const { token, coordinator_addr, group_name, key } = await request.json();
 
     if (!token || !coordinator_addr || !group_name || !key) {
       return new Response(
@@ -58,4 +54,3 @@ export const GET: APIRoute = async ({ request }) => {
     });
   }
 };
-

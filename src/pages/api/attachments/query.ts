@@ -9,6 +9,7 @@ export const POST: APIRoute = async ({ request }) => {
       key_prefix,
       limit = 20,
       offset = 0,
+      count = false,
     } = await request.json();
 
     if (!token || !coordinator_addr || !group_name) {
@@ -29,6 +30,7 @@ export const POST: APIRoute = async ({ request }) => {
     const queryPayload: any = {
       limit,
       offset,
+      count, // Required field according to AttachmentsQueryReq schema
     };
 
     // Add optional fields
@@ -74,4 +76,3 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 };
-

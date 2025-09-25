@@ -26,12 +26,29 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     if (response.ok) {
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      try {
+        const data = await response.json();
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      } catch (jsonError) {
+        // If response is successful but not JSON, return success without data
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Group created successfully",
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
     } else {
       const error = await response.text();
       return new Response(JSON.stringify({ error }), {
@@ -42,12 +59,18 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: {
-        "Content-Type": "application/json",
+    console.error("Group creation error:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Internal server error",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
   }
 };
-

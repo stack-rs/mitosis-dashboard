@@ -2,58 +2,60 @@ import type { APIRoute } from "astro";
 
 export const POST: APIRoute = async ({ params, request }) => {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const { token, coordinator_addr, storage_quota } = await request.json();
+
+    if (!token || !coordinator_addr) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        JSON.stringify({ error: "Token and coordinator_addr are required" }),
         {
-          status: 401,
+          status: 400,
           headers: { "Content-Type": "application/json" },
         },
       );
     }
 
-    const token = authHeader.substring(7);
     const groupName = params.groupName;
-    const requestBody = await request.json();
 
-    console.log(
-      `Admin updating storage quota for group ${groupName}:`,
-      requestBody,
+    if (!groupName || !storage_quota) {
+      return new Response(
+        JSON.stringify({ error: "Group name and storage_quota are required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Build the UpdateStorageQuotaReq payload
+    const updateStorageQuotaReq = {
+      storage_quota,
+    };
+
+    const response = await fetch(
+      `${coordinator_addr}/admin/groups/${groupName}/storage-quota`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateStorageQuotaReq),
+      },
     );
 
-    // Parse storage quota string to bytes (simplified)
-    const parseStorageQuota = (quota: string): number => {
-      const match = quota.match(/^(\d+(?:\.\d+)?)\s*(GB|MB|TB|KB|B)?$/i);
-      if (!match) return parseInt(quota) || 0;
-
-      const value = parseFloat(match[1]);
-      const unit = (match[2] || "B").toUpperCase();
-
-      const multipliers: { [key: string]: number } = {
-        B: 1,
-        KB: 1024,
-        MB: 1024 * 1024,
-        GB: 1024 * 1024 * 1024,
-        TB: 1024 * 1024 * 1024 * 1024,
-      };
-
-      return Math.floor(value * (multipliers[unit] || 1));
-    };
-
-    const quotaBytes = parseStorageQuota(requestBody.storage_quota);
-
-    // For demo purposes, return mock response
-    // In production, this would forward to the actual coordinator
-    const mockResponse = {
-      storage_quota: quotaBytes,
-      message: `Storage quota updated to ${quotaBytes} bytes`,
-    };
-
-    return new Response(JSON.stringify(mockResponse), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    if (response.ok) {
+      const data = await response.json();
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } else {
+      const error = await response.text();
+      return new Response(JSON.stringify({ error }), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   } catch (error) {
     console.error("Admin storage quota update error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
@@ -62,4 +64,3 @@ export const POST: APIRoute = async ({ params, request }) => {
     });
   }
 };
-

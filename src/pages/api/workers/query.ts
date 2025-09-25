@@ -2,63 +2,67 @@ import type { APIRoute } from "astro";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const {
+      token,
+      coordinator_addr,
+      group_name,
+      role,
+      tags,
+      creator_username,
+      count = false,
+    } = await request.json();
+
+    if (!token || !coordinator_addr) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        JSON.stringify({ error: "Token and coordinator_addr are required" }),
         {
-          status: 401,
+          status: 400,
           headers: { "Content-Type": "application/json" },
         },
       );
     }
 
-    const token = authHeader.substring(7);
-    const requestBody = await request.json();
-
-    // For demo purposes, return mock data
-    // In production, this would forward to the actual coordinator
-    const mockResponse = {
-      count: 3,
-      workers: [
-        {
-          worker_id: "worker-123e4567-e89b-12d3-a456-426614174000",
-          creator_username: "admin",
-          tags: ["compute", "gpu"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          state: "Normal",
-          last_heartbeat: new Date().toISOString(),
-          assigned_task_id: null,
-        },
-        {
-          worker_id: "worker-987fcdeb-51f2-4a61-b340-0123456789ab",
-          creator_username: "user1",
-          tags: ["compute", "cpu"],
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          updated_at: new Date().toISOString(),
-          state: "Normal",
-          last_heartbeat: new Date().toISOString(),
-          assigned_task_id: "task-456",
-        },
-        {
-          worker_id: "worker-456def78-9012-3456-789a-bcdef0123456",
-          creator_username: "user2",
-          tags: ["storage"],
-          created_at: new Date(Date.now() - 7200000).toISOString(),
-          updated_at: new Date().toISOString(),
-          state: "GracefulShutdown",
-          last_heartbeat: new Date(Date.now() - 300000).toISOString(),
-          assigned_task_id: null,
-        },
-      ],
-      group_name: "default",
+    // Build the query payload matching WorkersQueryReq schema
+    const queryPayload: any = {
+      count,
     };
 
-    return new Response(JSON.stringify(mockResponse), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    // Add optional fields only if they have values
+    if (group_name) {
+      queryPayload.group_name = group_name;
+    }
+    if (role && role.length > 0) {
+      queryPayload.role = role;
+    }
+    if (tags && tags.length > 0) {
+      queryPayload.tags = tags;
+    }
+    if (creator_username) {
+      queryPayload.creator_username = creator_username;
+    }
+
+    const response = await fetch(`${coordinator_addr}/workers/query`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(queryPayload),
     });
+
+    if (response.ok) {
+      const data = await response.json();
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } else {
+      const error = await response.text();
+      return new Response(JSON.stringify({ error }), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   } catch (error) {
     console.error("Workers query error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
@@ -67,4 +71,3 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 };
-

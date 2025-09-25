@@ -57,7 +57,6 @@ export function formatRustTimestamp(timeStr: string): string {
     try {
       return new Date(timeStr).toLocaleString();
     } catch (fallbackError) {
-      console.warn(`Failed to parse timestamp: ${timeStr}`, error);
       return timeStr; // Return original string if all parsing fails
     }
   }
@@ -96,9 +95,7 @@ export function formatRustTimeAgo(timeStr: string): string {
       if (diffHours < 24) return `${diffHours}h ago`;
       return `${diffDays}d ago`;
     } catch (fallbackError) {
-      console.warn(`Failed to parse timestamp: ${timeStr}`, error);
       return "Unknown";
     }
   }
 }
-

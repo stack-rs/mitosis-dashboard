@@ -2,34 +2,65 @@ import type { APIRoute } from "astro";
 
 export const POST: APIRoute = async ({ params, request }) => {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const { token, coordinator_addr, old_md5_password, new_md5_password } =
+      await request.json();
+
+    if (!token || !coordinator_addr) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        JSON.stringify({ error: "Token and coordinator_addr are required" }),
         {
-          status: 401,
+          status: 400,
           headers: { "Content-Type": "application/json" },
         },
       );
     }
 
-    const token = authHeader.substring(7);
     const username = params.username;
-    const requestBody = await request.json();
 
-    console.log(`Password change for user ${username}`);
+    if (!username || !old_md5_password || !new_md5_password) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Username, old_md5_password, and new_md5_password are required",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
 
-    // For demo purposes, return success with new token
-    // In production, this would forward to the actual coordinator
-    const mockResponse = {
-      token: "new_jwt_token_" + Date.now(),
-      message: "Password changed successfully",
+    // Build the ChangePasswordReq payload
+    const changePasswordReq = {
+      old_md5_password,
+      new_md5_password,
     };
 
-    return new Response(JSON.stringify(mockResponse), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    const response = await fetch(
+      `${coordinator_addr}/users/${username}/password`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(changePasswordReq),
+      },
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } else {
+      const error = await response.text();
+      return new Response(JSON.stringify({ error }), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   } catch (error) {
     console.error("Password change error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
@@ -38,4 +69,3 @@ export const POST: APIRoute = async ({ params, request }) => {
     });
   }
 };
-

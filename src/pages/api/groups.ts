@@ -2,40 +2,44 @@ import type { APIRoute } from "astro";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const { token, coordinator_addr } = await request.json();
+
+    if (!token || !coordinator_addr) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        JSON.stringify({ error: "Token and coordinator_addr are required" }),
         {
-          status: 401,
+          status: 400,
           headers: { "Content-Type": "application/json" },
         },
       );
     }
 
-    const token = authHeader.substring(7);
-    const requestBody = await request.json();
+    const response = await fetch(`${coordinator_addr}/groups`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-    console.log("Creating group:", requestBody);
-
-    // For demo purposes, just return success
-    // In production, this would forward to the actual coordinator
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Group "${requestBody.group_name}" created successfully`,
-      }),
-      {
+    if (response.ok) {
+      const data = await response.json();
+      return new Response(JSON.stringify(data), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      },
-    );
+      });
+    } else {
+      const error = await response.text();
+      return new Response(JSON.stringify({ error }), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   } catch (error) {
-    console.error("Group creation error:", error);
+    console.error("Groups query error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
 };
-

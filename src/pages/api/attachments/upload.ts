@@ -1,5 +1,17 @@
 import type { APIRoute } from "astro";
 
+export const OPTIONS: APIRoute = async () => {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+};
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const {
@@ -20,6 +32,9 @@ export const POST: APIRoute = async ({ request }) => {
           status: 400,
           headers: {
             "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
           },
         },
       );
@@ -50,6 +65,9 @@ export const POST: APIRoute = async ({ request }) => {
         status: 200,
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
         },
       });
     } else {
@@ -58,6 +76,9 @@ export const POST: APIRoute = async ({ request }) => {
         status: response.status,
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
         },
       });
     }
@@ -66,6 +87,9 @@ export const POST: APIRoute = async ({ request }) => {
       status: 500,
       headers: {
         "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }

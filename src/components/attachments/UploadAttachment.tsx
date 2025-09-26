@@ -72,9 +72,9 @@ export default function UploadAttachment({
         try {
           const uploadResponse = await fetch(data.url, {
             method: "PUT",
+            mode: "cors",
             headers: {
               "Content-Type": file.type || "application/octet-stream",
-              "Content-Length": file.size.toString(),
             },
             body: file,
           });
@@ -97,9 +97,17 @@ export default function UploadAttachment({
             );
           }
         } catch (uploadError) {
-          setMessage(
-            `Failed to upload file: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`,
-          );
+          let errorMessage = `Failed to upload file: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
+
+          // Add specific guidance for CORS errors
+          if (uploadError instanceof Error &&
+              (uploadError.message.includes('CORS') ||
+               uploadError.message.includes('Network request failed') ||
+               uploadError.message.includes('Failed to fetch'))) {
+            errorMessage += '. This may be due to CORS policy restrictions from the storage provider.';
+          }
+
+          setMessage(errorMessage);
         }
       } else {
         const errorMessage = await handleApiError(response);

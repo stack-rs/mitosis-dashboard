@@ -64,46 +64,26 @@ export default function DownloadArtifact({
       );
 
       if (response.ok) {
-        const data = await response.json();
+        // The API now directly streams the file, so we get it as a blob
+        const blob = await response.blob();
 
-        try {
-          // Fetch the actual file content from the presigned URL
-          const fileResponse = await fetch(data.url, {
-            method: "GET",
-            mode: "cors",
-          });
+        // Create a temporary URL for the blob
+        const blobUrl = window.URL.createObjectURL(blob);
 
-          if (!fileResponse.ok) {
-            throw new Error(
-              `Failed to download file: ${fileResponse.statusText}`,
-            );
-          }
+        // Create a temporary link to download the file
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = getFileName(contentType);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-          // Get the file as a blob
-          const blob = await fileResponse.blob();
+        // Clean up the blob URL
+        window.URL.revokeObjectURL(blobUrl);
 
-          // Create a temporary URL for the blob
-          const blobUrl = window.URL.createObjectURL(blob);
-
-          // Create a temporary link to download the file
-          const link = document.createElement("a");
-          link.href = blobUrl;
-          link.download = getFileName(contentType);
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          // Clean up the blob URL
-          window.URL.revokeObjectURL(blobUrl);
-
-          setMessage(
-            `Successfully downloaded ${getFileName(contentType)} from task ${taskUuid}`,
-          );
-        } catch (fileError) {
-          setMessage(
-            `Failed to download artifact: ${fileError instanceof Error ? fileError.message : String(fileError)}`,
-          );
-        }
+        setMessage(
+          `Successfully downloaded ${getFileName(contentType)} from task ${taskUuid}`,
+        );
       } else {
         const errorMessage = await handleApiError(response);
         setMessage(errorMessage);

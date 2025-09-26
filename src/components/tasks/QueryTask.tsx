@@ -58,21 +58,8 @@ export default function QueryTask({ token, coordinatorAddr }: QueryTaskProps) {
       );
 
       if (response.ok) {
-        const data = await response.json();
-
-        // Fetch the actual file content from the presigned URL
-        const fileResponse = await fetch(data.url, {
-          method: "GET",
-          mode: "cors",
-        });
-
-        if (!fileResponse.ok) {
-          throw new Error(
-            `Failed to download file: ${fileResponse.statusText}`,
-          );
-        }
-
-        const blob = await fileResponse.blob();
+        // The API now directly streams the file, so we get it as a blob
+        const blob = await response.blob();
         const blobUrl = window.URL.createObjectURL(blob);
 
         const link = document.createElement("a");

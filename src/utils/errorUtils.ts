@@ -107,7 +107,17 @@ export async function handleApiError(response: Response): Promise<string> {
  */
 export function handleNetworkError(error: any): string {
   if (error instanceof Error) {
-    return formatErrorMessage(error.message);
+    let errorMessage = formatErrorMessage(error.message);
+
+    // Add specific guidance for CORS errors
+    if (error.message.includes('CORS') ||
+        error.message.includes('Network request failed') ||
+        error.message.includes('Failed to fetch') ||
+        error.message.includes('Access to fetch')) {
+      errorMessage += '. This may be due to CORS policy restrictions from the storage provider.';
+    }
+
+    return errorMessage;
   }
   return formatErrorMessage(error || "Network error occurred");
 }

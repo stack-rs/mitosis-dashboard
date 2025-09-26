@@ -44,40 +44,21 @@ export default function DownloadAttachment({
       });
 
       if (response.ok) {
-        const data = await response.json();
+        // The API now directly streams the file, so we get it as a blob
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
 
-        // Download the file from the presigned URL
-        try {
-          const fileResponse = await fetch(data.url, {
-            method: "GET",
-            mode: "cors",
-          });
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = attachmentKey;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-          if (!fileResponse.ok) {
-            throw new Error(
-              `Failed to download file: ${fileResponse.statusText}`,
-            );
-          }
-
-          const blob = await fileResponse.blob();
-          const blobUrl = window.URL.createObjectURL(blob);
-
-          const link = document.createElement("a");
-          link.href = blobUrl;
-          link.download = attachmentKey;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          window.URL.revokeObjectURL(blobUrl);
-          setMessage(
-            `Successfully downloaded "${attachmentKey}" from group "${effectiveGroupName}"`,
-          );
-        } catch (fileError) {
-          setMessage(
-            `Failed to download attachment: ${fileError instanceof Error ? fileError.message : String(fileError)}`,
-          );
-        }
+        window.URL.revokeObjectURL(blobUrl);
+        setMessage(
+          `Successfully downloaded "${attachmentKey}" from group "${effectiveGroupName}"`,
+        );
       } else {
         const errorMessage = await handleApiError(response);
         setMessage(errorMessage);

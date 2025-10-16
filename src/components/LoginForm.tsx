@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { handleApiError, handleNetworkError } from "../utils/errorUtils";
+import { normalizeCoordinatorUrl } from "../utils/urlUtils";
 
 interface LoginFormProps {
   onLogin: (
@@ -40,7 +41,9 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       const data = await response.json();
 
       if (response.ok && data.token) {
-        onLogin(data.token, username, coordinatorAddr, retain);
+        // Normalize the coordinator URL before storing
+        const normalizedCoordinatorAddr = normalizeCoordinatorUrl(coordinatorAddr);
+        onLogin(data.token, username, normalizedCoordinatorAddr, retain);
       } else {
         const errorMessage = await handleApiError(response);
         setError(errorMessage);

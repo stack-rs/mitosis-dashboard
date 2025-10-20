@@ -265,6 +265,7 @@ export interface WorkerQueryInfo {
   worker_id: string;
   creator_username: string;
   tags: string[];
+  labels: string[];
   created_at: string;
   updated_at: string;
   state: WorkerState;
@@ -281,6 +282,7 @@ export interface WorkersQueryReq {
   group_name?: string;
   role?: GroupWorkerRole[];
   tags?: string[];
+  labels?: string[];
   creator_username?: string;
   count?: boolean;
 }

@@ -35,6 +35,7 @@ export default function ListWorkers({
   const [groupName, setGroupName] = useState("");
   const [creatorUsername, setCreatorUsername] = useState("");
   const [tags, setTags] = useState("");
+  const [labels, setLabels] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<GroupWorkerRole[]>([]);
   const [limit, setLimit] = useState("");
   const [offset, setOffset] = useState("");
@@ -66,6 +67,11 @@ export default function ListWorkers({
         baseQueryParams.tags = tags
           .split(",")
           .map((t) => t.trim())
+          .filter(Boolean);
+      if (labels)
+        baseQueryParams.labels = labels
+          .split(",")
+          .map((l) => l.trim())
           .filter(Boolean);
       if (selectedRoles.length > 0) baseQueryParams.role = selectedRoles;
 
@@ -264,6 +270,19 @@ export default function ListWorkers({
                 onChange={(e) => setTags(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="tag1, tag2, tag3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Labels (comma-separated)
+              </label>
+              <input
+                type="text"
+                value={labels}
+                onChange={(e) => setLabels(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="label1, label2, label3"
               />
             </div>
 

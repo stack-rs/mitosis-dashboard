@@ -8,6 +8,7 @@ export const POST: APIRoute = async ({ request }) => {
       group_name,
       role,
       tags,
+      labels,
       creator_username,
       count = false,
     } = await request.json();
@@ -36,6 +37,9 @@ export const POST: APIRoute = async ({ request }) => {
     }
     if (tags && tags.length > 0) {
       queryPayload.tags = tags;
+    }
+    if (labels && labels.length > 0) {
+      queryPayload.labels = labels;
     }
     if (creator_username) {
       queryPayload.creator_username = creator_username;

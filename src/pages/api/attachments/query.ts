@@ -6,7 +6,7 @@ export const POST: APIRoute = async ({ request }) => {
       token,
       coordinator_addr,
       group_name,
-      key_prefix,
+      key: key,
       limit = 20,
       offset = 0,
       count = false,
@@ -34,8 +34,8 @@ export const POST: APIRoute = async ({ request }) => {
     };
 
     // Add optional fields
-    if (key_prefix) {
-      queryPayload.key_prefix = key_prefix;
+    if (key) {
+      queryPayload.key = key;
     }
 
     const response = await fetch(
